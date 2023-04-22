@@ -36,9 +36,9 @@ all: install lint
 run-app:
 	python3 app.py
 
-run-docker: build-docker
-	./bin/run_docker.sh
+# run-docker: build-docker
+# 	./bin/run_docker.sh
 
-upload-docker: build-docker
-	./bin/upload_docker.sh
+# upload-docker: build-docker
+# 	./bin/upload_docker.sh
 
