@@ -76,8 +76,7 @@ jobs:
             # curl -o kubectl https://s3.us-west-2.amazonaws.com/amazon-eks/1.22.6/2022-03-09/bin/linux/amd64/kubectl
             # install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
 
-            curl -sSLo kubectl "https://dl.k8s.io/release/$(curl -L -s \
-            https://dl.k8s.io/release/stable.txt)/bin/${uname | tr "[:upper:]" "[:lower:]"}/amd64/kubectl"
+            curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
             install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
 
             curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
@@ -106,7 +105,10 @@ jobs:
       - run:
           name: Install dependancies
           command: |
-            curl -o kubectl https://s3.us-west-2.amazonaws.com/amazon-eks/1.22.6/2022-03-09/bin/linux/amd64/kubectl
+            # curl -o kubectl https://s3.us-west-2.amazonaws.com/amazon-eks/1.22.6/2022-03-09/bin/linux/amd64/kubectl
+            # install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+
+            curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
             install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
       - run:
           name: Test load balancer
