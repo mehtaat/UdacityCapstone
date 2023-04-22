@@ -3,7 +3,7 @@ app = Flask(__name__)
 
 
 @app.route('/')
-def app():
+def udacity():
     return "<h1 style='text-align: center;'>Welcome to Cloud DevOps Udacity Capstone Project!</h1>"
 
 
