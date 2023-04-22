@@ -87,7 +87,7 @@ jobs:
             if eksctl create cluster --name app-cluster --region=us-west-2
             then
               echo "creating new Stack"
-              ./usr/local/bin/eksctl create cluster --config-file=app-cluster.yml
+              # ./usr/local/bin/eksctl create cluster --config-file=app-cluster.yml
               aws eks update-kubeconfig --name app-cluster --region us-west-2
               kubectl create deploy app-cluster --image="mehtaat/app-devops-image:${CIRCLE_WORKFLOW_ID:0:7}"
               kubectl expose deployment app-cluster --type=LoadBalancer --port=80 --target-port=80
