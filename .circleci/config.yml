@@ -1,0 +1,135 @@
+version: 2.1
+
+orbs:
+  docker: circleci/docker@1.5.0
+  aws-cli: circleci/aws-cli@3.1.1
+
+commands:
+  destroy-environment:
+    description: Destroy cloudformation stacks.
+    steps:
+      - run:
+          name: Destroy environments
+          when: on_fail
+          command: |
+            # aws delete cluster --stack-name --region=us-west-2 "eksctl-${CIRCLE_WORKFLOW_ID:0:7}"
+            ./usr/local/bin/eksctl delete cluster --name app-cluster --region=us-west-2
+
+jobs:
+  build:
+    docker:
+      - image: python:3.7.3-stretch
+    steps:
+      - checkout
+      # Download and cache dependencies
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "requirements.txt" }}
+            # fallback to using the latest cache if no exact match is found
+      - run:
+          name: Install dependencies
+          command: |
+            python3 -m venv .devops
+            source .devops/bin/activate
+            make install
+      - save_cache:
+          paths:
+            - ./.devops  # TODO: Include in cache the "bin" directory
+          key: v1-dependencies-{{ checksum "requirements.txt" }}
+      - run:
+          name: Run lint
+          command: |
+            source .devops/bin/activate
+            make lint
+
+  upload:
+    docker:
+      - image: cimg/go:1.17
+    steps:
+      - checkout
+      - setup_remote_docker:
+          version: 20.10.14
+      - run:
+          name: Build docker container
+          command: |
+            docker build --tag=app-devops-image .
+            docker image ls
+      - run:
+          name: Upload Docker to Dockerhub
+          command: |
+            dockerpath="mehtaat/app-devops"
+            docker login --username=mehtaat --password=$DOCKER_PASSWORD
+            docker tag "app-devops-image" "${dockerpath}:${CIRCLE_WORKFLOW_ID:0:7}"
+            docker tag "app-devops-image" "${dockerpath}:latest"
+            docker push "${dockerpath}:${CIRCLE_WORKFLOW_ID:0:7}"
+            docker push "${dockerpath}:latest"
+
+  deploy:
+    docker:
+      - image: amazon/aws-cli
+    steps:
+      - checkout
+      - run:
+          name: Install dependancies
+          command: |
+            yum install -y tar gzip
+            # curl -o kubectl https://s3.us-west-2.amazonaws.com/amazon-eks/1.22.6/2022-03-09/bin/linux/amd64/kubectl
+            # install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+
+            curl -sSLo kubectl "https://dl.k8s.io/release/$(curl -L -s \
+            https://dl.k8s.io/release/stable.txt)/bin/${uname | tr "[:upper:]" "[:lower:]"}/amd64/kubectl"
+            install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+
+            curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
+            mv /tmp/eksctl /usr/local/bin
+      - run:
+          name: create new cluster
+          command: |
+            if eksctl create cluster --name app-cluster --region=us-west-2
+            then
+              echo "creating new Stack"
+              ./usr/local/bin/eksctl create cluster --config-file=app-cluster.yml
+              aws eks update-kubeconfig --name app-cluster --region us-west-2
+              kubectl create deploy app-cluster --image="mehtaat/app-devops-image:${CIRCLE_WORKFLOW_ID:0:7}"
+              kubectl expose deployment app-cluster --type=LoadBalancer --port=80 --target-port=80
+            else
+              aws eks update-kubeconfig --name app-cluster --region us-west-2
+              echo "update existing Stack"
+              kubectl get deploy,rs,svc,pods
+              kubectl set image deployment/devops app-devops-image="mehtaat/app-devops-image:${CIRCLE_WORKFLOW_ID:0:7}"
+            fi
+
+  smoke-test:
+    docker:
+      - image: amazon/aws-cli
+    steps:
+      - run:
+          name: Install dependancies
+          command: |
+            curl -o kubectl https://s3.us-west-2.amazonaws.com/amazon-eks/1.22.6/2022-03-09/bin/linux/amd64/kubectl
+            install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+      - run:
+          name: Test load balancer
+          command: |
+            aws eks update-kubeconfig --name app-cluster --region us-west-2
+            if curl -s http://a115bdbb1f1da47d39ae427c9749753b-187578367.us-west-2.elb.amazonaws.com/ | grep "Mehtaat"
+            then
+              echo "Verified!"
+            else
+              kubectl rollout undo deployments/devops
+            fi
+
+
+workflows:
+  default:
+    jobs:
+      - build        
+      - upload:
+          requires: [build]
+      - deploy:
+          requires: [upload]
+          # filters:
+          #   branches:
+          #     only: [main]
+      - smoke-test:
+          requires: [deploy]
