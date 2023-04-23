@@ -84,7 +84,7 @@ jobs:
       - run:
           name: create new cluster
           command: |
-            if eksctl create cluster --name app-cluster --config-file=./../app-cluster.yml --region=us-west-2
+            if eksctl create cluster --name app-cluster --config-file=.circleci/files/app_cluster.yml --region=us-west-2
             then
               echo "creating new Stack"
               aws eks update-kubeconfig --name app-cluster --region us-west-2
