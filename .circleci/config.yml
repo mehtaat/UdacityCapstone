@@ -84,10 +84,9 @@ jobs:
       - run:
           name: create new cluster
           command: |
-            if eksctl create cluster --name app-cluster --config-file=app-cluster.yml --region=us-west-2
+            if eksctl create cluster --name app-cluster --config-file=.\..\app-cluster.yml --region=us-west-2
             then
               echo "creating new Stack"
-              # ./usr/local/bin/eksctl create cluster --config-file=app-cluster.yml
               aws eks update-kubeconfig --name app-cluster --region us-west-2
               kubectl create deployment app-cluster --image="mehtaat/app-devops-image:${CIRCLE_WORKFLOW_ID:0:7}"
               kubectl get deployments
