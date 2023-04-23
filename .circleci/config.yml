@@ -84,18 +84,20 @@ jobs:
       - run:
           name: create new cluster
           command: |
-            if eksctl create cluster --name app-cluster --region=us-west-2
+            if eksctl create cluster --name app-cluster --config-file=app-cluster.yml --region=us-west-2
             then
               echo "creating new Stack"
               # ./usr/local/bin/eksctl create cluster --config-file=app-cluster.yml
               aws eks update-kubeconfig --name app-cluster --region us-west-2
-              kubectl create deploy app-cluster --image="mehtaat/app-devops-image:${CIRCLE_WORKFLOW_ID:0:7}"
-              kubectl expose deployment app-cluster --type=LoadBalancer --port=80 --target-port=80
+              kubectl create deployment app-cluster --image="mehtaat/app-devops-image:${CIRCLE_WORKFLOW_ID:0:7}"
+              kubectl get deployments
+              kubectl expose deployment app-cluster --type=LoadBalancer --port=80 --target-port=80 --name=app-service
+              kubectl describe services app-service
             else
               aws eks update-kubeconfig --name app-cluster --region us-west-2
               echo "update existing Stack"
               kubectl get deploy,rs,svc,pods
-              kubectl set image deployment/devops app-devops-image="mehtaat/app-devops-image:${CIRCLE_WORKFLOW_ID:0:7}"
+              kubectl set image deployment/app-cluster app-devops-image="mehtaat/app-devops-image:${CIRCLE_WORKFLOW_ID:0:7}"
             fi
 
   smoke-test:
@@ -114,11 +116,19 @@ jobs:
           name: Test load balancer
           command: |
             aws eks update-kubeconfig --name app-cluster --region us-west-2
-            if curl -s http://a115bdbb1f1da47d39ae427c9749753b-187578367.us-west-2.elb.amazonaws.com/ | grep "Mehtaat"
+
+            export IP=$(aws ec2 describe-instances \
+              --query 'Reservations[*].Instances[*].PublicIpAddress' \
+              --filters "Name=tag:project,Values=demo" \
+              --output text)
+            export API_URL="http://${IP}:80"
+            echo "API_URL = ${API_URL}"
+
+            if curl -s "${API_URL}/api/status" | grep "ok"
             then
               echo "Verified!"
             else
-              kubectl rollout undo deployments/devops
+              kubectl rollout undo deployments/app-cluster
             fi
 
 
