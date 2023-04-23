@@ -12,8 +12,7 @@ commands:
           name: Destroy environments
           when: on_fail
           command: |
-            # aws delete cluster --stack-name --region=us-west-2 "eksctl-${CIRCLE_WORKFLOW_ID:0:7}"
-            ./usr/local/bin/eksctl delete cluster --name app-cluster --region=us-west-2
+            eksctl delete cluster -f .circleci/files/app_cluster.yaml
 
 jobs:
   build:
@@ -84,8 +83,8 @@ jobs:
       - run:
           name: create new cluster
           command: |
-            # if eksctl create cluster --name app-cluster --config-file=.circleci/files/app_cluster.yml --region=us-west-2
-            if eksctl create cluster --config-file=.circleci/files/app_cluster.yml
+            if eksctl create cluster --name app-cluster --region=us-west-2
+            # if eksctl create cluster --config-file=.circleci/files/app_cluster.yml
             then
               echo "creating new Stack"
               aws eks update-kubeconfig --name app-cluster --region us-west-2
@@ -111,25 +110,31 @@ jobs:
             # install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
 
             curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-            install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+            sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
       - run:
           name: Test load balancer
           command: |
             aws eks update-kubeconfig --name app-cluster --region us-west-2
-
-            export IP=$(aws ec2 describe-instances \
-              --query 'Reservations[*].Instances[*].PublicIpAddress' \
-              --filters "Name=tag:project,Values=demo" \
-              --output text)
-            export API_URL="http://${IP}:80"
-            echo "API_URL = ${API_URL}"
-
-            if curl -s "${API_URL}/api/status" | grep "ok"
+            if curl -s http://a115bdbb1f1da47d39ae427c9749753b-187578367.us-west-2.elb.amazonaws.com/api/status | grep "ok"
             then
               echo "Verified!"
             else
-              kubectl rollout undo deployments/app-cluster
+              kubectl rollout undo deployments/devops
             fi
+
+            # export IP=$(aws ec2 describe-instances \
+            #   --query 'Reservations[*].Instances[*].PublicIpAddress' \
+            #   --filters "Name=tag:project,Values=demo" \
+            #   --output text)
+            # export API_URL="http://${IP}:80"
+            # echo "API_URL = ${API_URL}"
+
+            # if curl -s "${API_URL}/api/status" | grep "ok"
+            # then
+            #   echo "Verified!"
+            # else
+            #   kubectl rollout undo deployments/app-cluster
+            # fi
 
 
 workflows:
