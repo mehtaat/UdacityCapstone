@@ -83,20 +83,25 @@ jobs:
       - run:
           name: create new cluster
           command: |
-            if eksctl create cluster --name app-cluster --region=us-west-2
-            # if eksctl create cluster --config-file=.circleci/files/app_cluster.yml
+            # if eksctl create cluster --name app-cluster --region=us-west-2
+            if eksctl create cluster --config-file=.circleci/files/app_cluster.yml
             then
               echo "creating new Stack"
               aws eks update-kubeconfig --name app-cluster --region us-west-2
-              kubectl create deployment app-cluster --image="mehtaat/app-devops-image:${CIRCLE_WORKFLOW_ID:0:7}"
+              kubectl get svc
+
+              # kubectl create deployment app-cluster --image="mehtaat/app-devops-image:${CIRCLE_WORKFLOW_ID:0:7}"
+              kubectl apply -f .circleci/files/deployment.yaml
               kubectl get deployments
-              kubectl expose deployment app-cluster --type=LoadBalancer --port=80 --target-port=80 --name=app-service
-              kubectl describe services app-service
+              
+              # kubectl expose deployment app-cluster --type=LoadBalancer --port=80 --target-port=80 --name=app-service
+              kubectl apply -f .circleci/files/service.yaml
+              kubectl get services
             else
               aws eks update-kubeconfig --name app-cluster --region us-west-2
               echo "update existing Stack"
               kubectl get deploy,rs,svc,pods
-              kubectl set image deployment/app-cluster app-devops-image="mehtaat/app-devops-image:${CIRCLE_WORKFLOW_ID:0:7}"
+              kubectl set image deployment/app-cluster app-devops-image="mehtaat/app-devops-image:latest"
             fi
 
   smoke-test:
@@ -110,7 +115,7 @@ jobs:
             # install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
 
             curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-            sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+            install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
       - run:
           name: Test load balancer
           command: |

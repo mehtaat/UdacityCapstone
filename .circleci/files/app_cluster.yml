@@ -5,8 +5,8 @@ metadata:
   name: app-cluster
   region: us-west-2
 
-iam:
-  withOIDC: true
+# iam:
+#   withOIDC: true
 
 nodeGroups:
   - name: ng1
@@ -18,8 +18,5 @@ nodeGroups:
     volumeSize: 80
     ssh:
       allow: true
-      publicKeyName: KeyPair_Demo
-    # Tags:
-    #     - Key: Name
-    #       Value: demo  
+      publicKeyName: KeyPair_Demo 
 
