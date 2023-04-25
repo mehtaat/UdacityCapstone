@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: app-devops-app
-  namespace: app-devops-app
+  # namespace: app-devops-app
   labels:
     app: app-devops
 spec:
