@@ -8,7 +8,7 @@ metadata:
 spec:
   replicas: 2
   strategy:
-    type: RolingUpdate
+    type: RollingUpdate
   selector:
     matchLabels:
       app: app-devops-app
