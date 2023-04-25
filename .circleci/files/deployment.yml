@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: app-devops-app
-  # namespace: app-devops-app
+  namespace: default
   labels:
     app: app-devops
 spec:
@@ -17,16 +17,16 @@ spec:
       labels:
         app: app-devops-app
     spec:
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-              - matchExpressions:
-                  - key: kubernetes.io/arch
-                    operator: In
-                    values:
-                      - amd64
-                      - arm64
+      # affinity:
+      #   nodeAffinity:
+      #     requiredDuringSchedulingIgnoredDuringExecution:
+      #       nodeSelectorTerms:
+      #         - matchExpressions:
+      #             - key: kubernetes.io/arch
+      #               operator: In
+      #               values:
+      #                 - amd64
+      #                 - arm64
       containers:
         - name: app-devops-app
           image: mehtaat/app-devops-image:latest
