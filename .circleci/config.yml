@@ -94,7 +94,7 @@ jobs:
               kubectl apply -f .circleci/files/deployment.yml
               kubectl get deployments
               
-              kubectl expose deployment app-cluster --type=LoadBalancer --port=80 --target-port=80 --name=app-service
+              kubectl expose deployment app-devops-app --type=LoadBalancer --port=80 --target-port=80 --name=app-service
               # kubectl apply -f .circleci/files/service.yml
               kubectl get services
             else
