@@ -90,11 +90,11 @@ jobs:
               aws eks update-kubeconfig --name app-cluster --region us-west-2
               kubectl get svc
 
-              kubectl create deployment app-cluster --image="mehtaat/app-devops-image:${CIRCLE_WORKFLOW_ID:0:7}"
+              kubectl create deploy app-cluster --image="mehtaat/app-devops-image:${CIRCLE_WORKFLOW_ID:0:7}"
               # kubectl apply -f .circleci/files/deployment.yml
               kubectl get deployments
               
-              kubectl expose deployment app-cluster --type=LoadBalancer --port=80 --target-port=80 --name=app-service
+              kubectl expose deployment app-cluster --type=LoadBalancer --port=80 --target-port=80
               # kubectl apply -f .circleci/files/service.yml
               kubectl get services
             else
